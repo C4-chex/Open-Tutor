@@ -24,6 +24,7 @@ from dataclasses import dataclass, field
 import httpx
 
 from services.ingestion.document_loader_extractors import (  # noqa: F401
+    CRAWLER_UNAVAILABLE_ERRORS,
     _build_crawl4ai_config,
     _extract_from_url,
     _try_crawl4ai_url,
@@ -121,11 +122,11 @@ async def extract_content_rich(
             result = await crawler.arun(url=url, config=config)
             if result.success:
                 return _crawl_result_to_extraction(result, url, query)
-    except ImportError:
-        logger.debug("crawl4ai not installed, falling back to basic extraction")
+    except CRAWLER_UNAVAILABLE_ERRORS:
+        logger.debug("Crawl4AI browser unavailable, falling back to basic extraction", exc_info=True)
     except (OSError, ConnectionError, TimeoutError, httpx.HTTPError) as e:
         logger.debug(f"Crawl4AI rich extraction failed for {url}: {e}")
-    except (ValueError, RuntimeError) as e:
+    except (ValueError, RuntimeError):
         logger.exception(f"Unexpected error in Crawl4AI rich extraction for {url}")
 
     # Fallback to basic extraction
@@ -161,12 +162,12 @@ async def extract_content_batch(
                     extractions.append(ExtractionResult(title=result.url))
             return extractions
 
-    except ImportError:
-        logger.debug("crawl4ai not installed, falling back to sequential extraction")
+    except CRAWLER_UNAVAILABLE_ERRORS:
+        logger.debug("Crawl4AI browser unavailable, falling back to sequential extraction", exc_info=True)
     except (OSError, ConnectionError, TimeoutError, httpx.HTTPError) as e:
         logger.debug(f"Crawl4AI batch extraction failed: {e}")
-    except (ValueError, RuntimeError) as e:
-        logger.exception(f"Unexpected error in Crawl4AI batch extraction")
+    except (ValueError, RuntimeError):
+        logger.exception("Unexpected error in Crawl4AI batch extraction")
 
     # Fallback: sequential extraction
     results = []

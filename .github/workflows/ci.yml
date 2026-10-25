@@ -5,6 +5,10 @@ on:
     branches: ["main"]
   pull_request:
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   checks:
     name: Backend + Frontend Checks
@@ -123,7 +127,7 @@ jobs:
         run: npm run lint
 
       - name: Security audit
-        run: npm audit --audit-level=high || true
+        run: npm audit --audit-level=high
         working-directory: apps/web
 
       - name: Run Web unit tests
@@ -188,13 +192,9 @@ jobs:
           pip install -r apps/api/requirements-full.txt
           pip install pytest pytest-timeout
 
-      - name: Prepare upload fixture
-        run: |
-          cat > /tmp/opentutor_upload_test.md <<'EOF'
-          # Unit 1
-          ## Topic A
-          Notes for CI smoke test.
-          EOF
+      - name: Validate upload fixture
+        # Preserve the filename: names containing "test" classify as exams.
+        run: test -s tests/e2e/fixtures/sample-course.md
 
       - name: Start mock LLM API
         run: |
@@ -228,7 +228,7 @@ jobs:
         run: |
           API_BASE=http://127.0.0.1:8004 \
           STRICT_LLM=1 \
-          UPLOAD_FILE=/tmp/opentutor_upload_test.md \
+          UPLOAD_FILE=tests/e2e/fixtures/sample-course.md \
           bash scripts/smoke_test.sh
 
       - name: Dump API log on failure

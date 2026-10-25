@@ -1,21 +1,27 @@
 /**
  * Playwright script to capture demo screenshots for README.
- * Usage: PLAYWRIGHT_USE_EXISTING_SERVER=1 npx playwright test take-screenshots
+ * Usage: UPDATE_DOCS_SCREENSHOTS=1 PLAYWRIGHT_USE_EXISTING_SERVER=1 npx playwright test take-screenshots
  */
-import { test } from "@playwright/test";
+import { test, type TestInfo } from "@playwright/test";
 import path from "path";
+import { apiBaseUrl } from "./helpers/test-utils";
 
 const OUT = path.resolve(__dirname, "../../docs/assets");
+
+function screenshotPath(info: TestInfo, name: string) {
+  return process.env.UPDATE_DOCS_SCREENSHOTS === "1"
+    ? path.join(OUT, name)
+    : info.outputPath(name);
+}
 
 test.use({
   viewport: { width: 1440, height: 900 },
   colorScheme: "dark",
 });
 
-test("capture course workspace screenshot", async ({ page }) => {
+test("capture course workspace screenshot", async ({ page }, testInfo) => {
   // Get courses from API
-  const apiBase = "http://127.0.0.1:8000/api";
-  const res = await page.request.get(`${apiBase}/courses/`);
+  const res = await page.request.get(`${apiBaseUrl}/courses/`);
   const courses = await res.json();
 
   if (courses.length === 0) {
@@ -52,12 +58,12 @@ test("capture course workspace screenshot", async ({ page }) => {
   });
 
   await page.screenshot({
-    path: path.join(OUT, "screenshot-workspace.png"),
+    path: screenshotPath(testInfo, "screenshot-workspace.png"),
     fullPage: false,
   });
 });
 
-test("capture dashboard screenshot", async ({ page }) => {
+test("capture dashboard screenshot", async ({ page }, testInfo) => {
   await page.goto("/", { waitUntil: "networkidle" });
   await page.waitForTimeout(2000);
 
@@ -68,12 +74,12 @@ test("capture dashboard screenshot", async ({ page }) => {
   });
 
   await page.screenshot({
-    path: path.join(OUT, "screenshot-dashboard.png"),
+    path: screenshotPath(testInfo, "screenshot-dashboard.png"),
     fullPage: false,
   });
 });
 
-test("capture setup page screenshot", async ({ page }) => {
+test("capture setup page screenshot", async ({ page }, testInfo) => {
   await page.goto("/setup", { waitUntil: "networkidle" });
   await page.waitForTimeout(1500);
 
@@ -84,7 +90,7 @@ test("capture setup page screenshot", async ({ page }) => {
   });
 
   await page.screenshot({
-    path: path.join(OUT, "screenshot-setup.png"),
+    path: screenshotPath(testInfo, "screenshot-setup.png"),
     fullPage: false,
   });
 });

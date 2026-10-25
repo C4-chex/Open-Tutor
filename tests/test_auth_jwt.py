@@ -4,12 +4,13 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import patch, MagicMock
 
 import pytest
-from jose import jwt, JWTError
+import jwt
+from jwt.exceptions import InvalidTokenError as JWTError
 
 # ---------------------------------------------------------------------------
 # Fake settings so the tests are fully self-contained
 # ---------------------------------------------------------------------------
-SECRET = "test-secret-key-for-unit-tests"  # pragma: allowlist secret
+SECRET = "test-secret-key-for-unit-tests-at-least-32-bytes"  # pragma: allowlist secret
 ALGORITHM = "HS256"
 ACCESS_EXP_MINUTES = 30
 REFRESH_EXP_DAYS = 7
@@ -147,16 +148,57 @@ class TestWrongSecretKey:
         token = create_access_token("user-secret")
 
         with pytest.raises(JWTError):
-            jwt.decode(token, "wrong-secret-key", algorithms=[ALGORITHM])
+            jwt.decode(token, "wrong-secret-key-at-least-32-bytes", algorithms=[ALGORITHM])
 
     def test_wrong_key_via_patched_decode(self):
         """Encode with real secret, then swap the secret in settings and decode."""
         token = create_access_token("user-secret")
 
         wrong_settings = MagicMock()
-        wrong_settings.jwt_secret_key = "completely-different-secret"  # pragma: allowlist secret
+        wrong_settings.jwt_secret_key = "completely-different-secret-at-least-32-bytes"  # pragma: allowlist secret
         wrong_settings.jwt_algorithm = ALGORITHM
 
         with patch("services.auth.jwt.settings", wrong_settings):
             with pytest.raises(JWTError):
                 decode_token(token)
+
+
+@pytest.mark.parametrize("token, token_type", [
+    (
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9."
+        "eyJzdWIiOiJsZWdhY3ktdXNlciIsInR5cGUiOiJhY2Nlc3MiLCJleHAiOjQxMDI0NDQ4MDB9."
+        "x6NvS1OXEwm7z2qPjZmABQbzXH2pwG5_akgcZNFMkdI",
+        "access",
+    ),
+    (
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9."
+        "eyJzdWIiOiJsZWdhY3ktdXNlciIsInR5cGUiOiJyZWZyZXNoIiwiZXhwIjo0MTAyNDQ0ODAwfQ."
+        "kFcbIevwnrRE4Ih0OHD957DEJQ-n0eeaYE-8xabJ_Z0",
+        "refresh",
+    ),
+])
+def test_python_jose_tokens_remain_valid(token, token_type):
+    """Fixtures signed with python-jose 3.5.0 and the public test-only SECRET."""
+    payload = decode_token(token)
+    assert payload == {"sub": "legacy-user", "type": token_type, "exp": 4102444800}
+
+
+@pytest.mark.parametrize("algorithm", ["RS256", "ES256"])
+def test_asymmetric_private_key_configuration_roundtrip(algorithm):
+    """Preserve deployments that use one PEM key to issue and verify tokens."""
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import ec, rsa
+    from services.auth.jwt import settings
+
+    key = (
+        rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        if algorithm == "RS256"
+        else ec.generate_private_key(ec.SECP256R1())
+    )
+    settings.jwt_algorithm = algorithm
+    settings.jwt_secret_key = key.private_bytes(
+        serialization.Encoding.PEM,
+        serialization.PrivateFormat.PKCS8,
+        serialization.NoEncryption(),
+    ).decode()
+    assert decode_token(create_access_token("asymmetric-user"))["sub"] == "asymmetric-user"

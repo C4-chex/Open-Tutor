@@ -76,14 +76,14 @@ test.describe("Dashboard", () => {
     const uid = Date.now();
     await createCourse(page, `DashCard ${uid}`);
     await page.goto("/");
-    await expect(page.getByText(`DashCard ${uid}`)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("course-spaces").getByText(`DashCard ${uid}`)).toBeVisible({ timeout: 15_000 });
   });
 
   test("clicking course card navigates to workspace", async ({ page }) => {
     const uid = Date.now();
     const courseId = await createCourse(page, `ClickNav ${uid}`);
     await page.goto("/");
-    await page.getByText(`ClickNav ${uid}`).click();
+    await page.getByTestId("course-spaces").getByText(`ClickNav ${uid}`).click();
     await expect(page).toHaveURL(new RegExp(`/course/${courseId}`), { timeout: 15_000 });
   });
 
@@ -99,9 +99,9 @@ test.describe("Dashboard", () => {
     const uid = Date.now();
     await createCourse(page, `DateCheck ${uid}`);
     await page.goto("/");
-    await expect(page.getByText(`DateCheck ${uid}`)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("course-spaces").getByText(`DateCheck ${uid}`)).toBeVisible({ timeout: 15_000 });
     // Date is shown as text-muted-foreground within the card
-    const card = page.locator("button").filter({ hasText: `DateCheck ${uid}` });
+    const card = page.getByTestId("course-spaces").getByRole("button").filter({ hasText: `DateCheck ${uid}` });
     await expect(card.locator(".text-muted-foreground").first()).toBeVisible();
   });
 
@@ -110,7 +110,7 @@ test.describe("Dashboard", () => {
     await createCourse(page, `EmptyFiles ${uid}`);
     await page.goto("/");
     // Courses show either a description or scene fallback text
-    await expect(page.getByText(`EmptyFiles ${uid}`)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("course-spaces").getByText(`EmptyFiles ${uid}`)).toBeVisible({ timeout: 15_000 });
   });
 
   test("multiple courses render in grid", async ({ page }) => {
@@ -119,15 +119,16 @@ test.describe("Dashboard", () => {
     await page.goto("/new");
     await createCourse(page, `GridB ${uid}`);
     await page.goto("/");
-    await expect(page.getByText(`GridA ${uid}`)).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText(`GridB ${uid}`)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("course-spaces").getByText(`GridA ${uid}`)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("course-spaces").getByText(`GridB ${uid}`)).toBeVisible({ timeout: 15_000 });
   });
 
   test("newly created course appears on dashboard", async ({ page }) => {
     const uid = Date.now();
     await createCourse(page, `BrandNew ${uid}`);
     await page.goto("/");
-    await expect(page.getByText(`BrandNew ${uid}`)).toBeVisible({ timeout: 15_000 });
+    // The same course may appear in both Continue Learning and the course grid.
+    await expect(page.getByTestId("course-spaces").getByText(`BrandNew ${uid}`)).toBeVisible({ timeout: 15_000 });
   });
 
   test("dashboard re-fetches courses on mount", async ({ page }) => {
@@ -136,6 +137,6 @@ test.describe("Dashboard", () => {
     await page.goto("/settings");
     await expect(page).toHaveURL(/\/settings/, { timeout: 15_000 });
     await page.goto("/");
-    await expect(page.getByText(`Refetch ${uid}`)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("course-spaces").getByText(`Refetch ${uid}`)).toBeVisible({ timeout: 15_000 });
   });
 });

@@ -11,11 +11,19 @@ Extracted from document_loader.py.
 
 import asyncio
 import logging
-import re
 
 import httpx
 
 logger = logging.getLogger(__name__)
+
+# Browser startup/navigation failures should use the non-browser extractors too.
+CRAWLER_UNAVAILABLE_ERRORS: tuple[type[Exception], ...] = (ImportError,)
+try:
+    from playwright.async_api import Error as PlaywrightError
+except ImportError:
+    pass
+else:
+    CRAWLER_UNAVAILABLE_ERRORS += (PlaywrightError,)
 
 
 def _build_crawl4ai_config(query: str | None = None):
@@ -65,11 +73,11 @@ async def _try_crawl4ai_url(url: str, query: str | None = None) -> tuple[str, st
                     if result.metadata and isinstance(result.metadata, dict):
                         title = result.metadata.get("title", url) or url
                     return title, raw
-    except ImportError:
-        logger.debug("crawl4ai not installed, skipping Crawl4AI layer")
+    except CRAWLER_UNAVAILABLE_ERRORS:
+        logger.debug("Crawl4AI browser unavailable, skipping Crawl4AI layer", exc_info=True)
     except (OSError, ConnectionError, TimeoutError, httpx.HTTPError) as e:
         logger.debug(f"Crawl4AI failed for {url}: {e}")
-    except (ValueError, RuntimeError) as e:
+    except (ValueError, RuntimeError):
         logger.exception(f"Unexpected error in Crawl4AI for {url}")
     return None
 
@@ -156,7 +164,7 @@ async def _try_browser_cascade(url: str) -> tuple[str, str] | None:
         logger.debug("Browser automation not available, skipping cascade for %s", url)
     except (OSError, ConnectionError, TimeoutError) as e:
         logger.warning("Browser cascade network error for %s: %s", url, e)
-    except (RuntimeError, ValueError) as e:
+    except (RuntimeError, ValueError):
         logger.exception("Browser cascade unexpected error for %s", url)
     return None
 

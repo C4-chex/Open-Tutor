@@ -36,6 +36,50 @@ def _extract_user_text(messages: list[dict]) -> str:
     return ""
 
 
+def _response_content(messages: list[dict]) -> str:
+    """Return deterministic fixtures that satisfy the real response contracts."""
+    system_text = " ".join(
+        str(message.get("content", ""))
+        for message in messages
+        if isinstance(message, dict) and message.get("role") == "system"
+    )
+    if "creating practice questions" in system_text:
+        questions = [
+            {
+                "question_type": "mc",
+                "question": "What input does binary search require?",
+                "options": {"A": "A sorted list", "B": "An unordered set", "C": "A graph", "D": "A stack"},
+                "correct_answer": "A",
+                "explanation": "Binary search relies on the ordering of elements to choose a half.",
+            },
+            {
+                "question_type": "tf",
+                "question": "Binary search discards half the remaining interval after each comparison.",
+                "options": None,
+                "correct_answer": "True",
+                "explanation": "Comparing the midpoint lets the algorithm discard one half.",
+            },
+            {
+                "question_type": "short_answer",
+                "question": "Why is binary search unreliable on an unsorted list?",
+                "options": None,
+                "correct_answer": "Discarding a half may remove the target because the ordering invariant is absent.",
+                "explanation": "The algorithm needs a sorted interval to preserve its search invariant.",
+            },
+        ]
+        for question in questions:
+            question["difficulty_layer"] = 1
+            question["problem_metadata"] = {
+                "core_concept": "binary search", "bloom_level": "understand",
+                "potential_traps": [], "layer_justification": "Direct comprehension of the fixture",
+                "skill_focus": "concept check", "source_section": "Binary Search Basics",
+            }
+        return json.dumps(questions)
+
+    user_text = _extract_user_text(messages)
+    return f"CI mock response: {user_text[:120]}" if user_text else "CI mock response."
+
+
 class MockOpenAIHandler(BaseHTTPRequestHandler):
     server_version = "MockOpenAI/1.0"
 
@@ -100,11 +144,7 @@ class MockOpenAIHandler(BaseHTTPRequestHandler):
             messages = []
         stream = bool(payload.get("stream")) if isinstance(payload, dict) else False
 
-        user_text = _extract_user_text(messages)
-        if user_text:
-            content = f"CI mock response: {user_text[:120]}"
-        else:
-            content = "CI mock response."
+        content = _response_content(messages)
 
         model = self.server.model_name  # type: ignore[attr-defined]
         created = int(time.time())

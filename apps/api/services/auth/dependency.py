@@ -70,7 +70,7 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    from services.auth.jwt import decode_token
+    from services.auth.jwt import JWTError, decode_token
     try:
         payload = decode_token(credentials.credentials)
         if payload.get("type") != "access":
@@ -78,7 +78,7 @@ async def get_current_user(
         user_id = uuid.UUID(payload["sub"])
     except HTTPException:
         raise  # Re-raise specific HTTP errors (e.g. "Invalid token type") as-is
-    except (ValueError, KeyError) as e:
+    except (JWTError, ValueError, KeyError) as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",

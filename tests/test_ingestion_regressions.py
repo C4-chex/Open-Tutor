@@ -1,5 +1,7 @@
+import sys
 import uuid
-from unittest.mock import patch
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -104,6 +106,62 @@ def test_crawl_result_to_extraction_handles_missing_markdown():
     assert extraction.content == ""
 
 
+@pytest.mark.parametrize("query", [None, "calculus"])
+def test_installed_crawler_generates_markdown_with_application_config(query):
+    pytest.importorskip("crawl4ai")
+    from services.ingestion.document_loader_extractors import _build_crawl4ai_config
+
+    config = _build_crawl4ai_config(query)
+    result = config.markdown_generator.generate_markdown(
+        "<h1>Calculus</h1><p>Derivatives describe rates of change.</p>",
+    )
+
+    assert "Calculus" in result.raw_markdown
+    assert "Derivatives describe rates of change." in result.raw_markdown
+    if query:
+        assert config.markdown_generator.content_filter.user_query == query
+
+
+@pytest.fixture
+def unavailable_crawler(monkeypatch):
+    playwright = pytest.importorskip("playwright.async_api")
+    crawler = AsyncMock()
+    crawler.__aenter__.side_effect = playwright.Error("Browser executable is missing")
+    monkeypatch.setitem(sys.modules, "crawl4ai", SimpleNamespace(
+        AsyncWebCrawler=lambda: crawler,
+        CrawlerRunConfig=lambda **kwargs: None,
+    ))
+    monkeypatch.setattr("services.ingestion.document_loader._build_crawl4ai_config", lambda query: None)
+
+
+@pytest.mark.asyncio
+async def test_local_html_uses_fallback_when_browser_is_unavailable(unavailable_crawler, tmp_path):
+    from services.ingestion.document_loader_formats import _extract_local_with_crawl4ai
+
+    path = tmp_path / "lesson.html"
+    path.write_text("<html><head><title>Calculus lesson</title></head><body><h1>Calculus lesson</h1><p>Derivatives describe rates of change.</p></body></html>")
+    title, text = await _extract_local_with_crawl4ai(str(path))
+
+    assert title == "lesson"
+    assert "Derivatives describe rates of change." in text
+
+
+@pytest.mark.asyncio
+async def test_url_extraction_uses_fallback_when_browser_is_unavailable(unavailable_crawler):
+    from services.ingestion.document_loader import extract_content_batch, extract_content_rich
+    from services.ingestion.document_loader_extractors import _try_crawl4ai_url
+
+    assert await _try_crawl4ai_url("https://example.com/lesson") is None
+    with patch("services.ingestion.document_loader._extract_from_url", new=AsyncMock(return_value=("Lesson", "Material"))):
+        result = await extract_content_rich("https://example.com/lesson")
+        results = await extract_content_batch(["https://example.com/lesson"])
+
+    assert result.title == "Lesson"
+    assert result.content == "Material"
+    assert len(results) == 1
+    assert results[0].content == "Material"
+
+
 @pytest.mark.asyncio
 async def test_scrape_url_to_tree_returns_empty_on_extraction_error():
     with patch("services.ingestion.document_loader.extract_content", side_effect=RuntimeError("x")):
@@ -118,8 +176,8 @@ async def test_run_ingestion_pipeline_file_sets_source_fields():
     course_id = uuid.uuid4()
 
     with patch(
-        "services.ingestion.pipeline.extract_content",
-        return_value="# Chapter 1\nSection 1.1 overview with enough descriptive text to exceed fifty characters.",
+        "services.ingestion.pipeline.extract_content_with_title",
+        return_value=("Chapter 1", "# Chapter 1\nSection 1.1 overview with enough descriptive text to exceed fifty characters."),
     ):
         job = await run_ingestion_pipeline(
             db=db,
@@ -148,8 +206,9 @@ async def test_run_ingestion_pipeline_url_sets_source_fields():
     target_url = "https://example.com/lesson"
 
     with patch(
-        "services.ingestion.pipeline.extract_content",
+        "services.ingestion.pipeline.extract_content_with_title",
         return_value=(
+            "Chapter 1",
             "# Chapter 1\n"
             "Section 1.1 overview with enough descriptive text to exceed fifty characters."
         ),
@@ -171,6 +230,7 @@ async def test_run_ingestion_pipeline_url_sets_source_fields():
     assert nodes
     assert all(n.source_type == "url" for n in nodes)
     assert all(n.source_file == target_url for n in nodes)
+    assert job.original_filename == "Chapter 1"
 
 
 @pytest.mark.asyncio

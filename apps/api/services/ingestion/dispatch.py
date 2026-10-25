@@ -37,13 +37,16 @@ async def dispatch_content(db: AsyncSession, job: IngestionJob) -> dict:
         from services.parser.pdf import _markdown_to_tree
         from models.content import CourseContentTree
         source_label = job.original_filename or job.url or "Untitled"
+        # A page title may change or be shared by several URLs; dedup and
+        # provenance must retain the original URL, while the tree uses its title.
+        source_file = job.url if job.source_type == "url" and job.url else source_label
 
         # Dedup: remove existing content tree nodes from the same source
         # before inserting new ones (prevents duplicates on re-ingestion)
         existing = await db.execute(
             select(CourseContentTree.id).where(
                 CourseContentTree.course_id == job.course_id,
-                CourseContentTree.source_file == source_label,
+                CourseContentTree.source_file == source_file,
             )
         )
         old_ids = existing.scalars().all()
@@ -96,7 +99,7 @@ async def dispatch_content(db: AsyncSession, job: IngestionJob) -> dict:
                 level=0,
                 order_index=0,
                 content=root_summary,
-                source_file=source_label,
+                source_file=source_file,
                 source_type=job.source_type,
             )
             nodes = [root]
@@ -114,7 +117,7 @@ async def dispatch_content(db: AsyncSession, job: IngestionJob) -> dict:
                     level=1,
                     order_index=i,
                     content=slide_content,
-                    source_file=source_label,
+                    source_file=source_file,
                     source_type=job.source_type,
                 )
                 nodes.append(child)
@@ -128,7 +131,7 @@ async def dispatch_content(db: AsyncSession, job: IngestionJob) -> dict:
         for node in nodes:
             # Normalize source metadata to the ingestion source (file/url).
             node.source_type = job.source_type
-            node.source_file = source_label
+            node.source_file = source_file
             node.content_category = category
             db.add(node)
         await db.flush()  # Assign IDs before indexing
@@ -239,7 +242,7 @@ async def dispatch_content(db: AsyncSession, job: IngestionJob) -> dict:
                 result["deadlines_extracted"] = deadline_count
         except (sa.exc.SQLAlchemyError, ValueError, KeyError) as e:
             logger.warning("Deadline extraction failed (non-blocking): %s", e)
-        except (RuntimeError, ConnectionError, TimeoutError) as e:
+        except (RuntimeError, ConnectionError, TimeoutError):
             logger.exception("Deadline extraction unexpected error (non-blocking)")
 
     return result
