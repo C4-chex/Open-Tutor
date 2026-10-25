@@ -1,7 +1,6 @@
 """Authentication endpoints: register, login, refresh."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from jose import JWTError
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,7 +10,7 @@ from database import get_db
 from models.user import User
 from schemas.auth import RegisterRequest, LoginRequest, RefreshRequest, TokenResponse, UserResponse
 from services.auth.password import hash_password, verify_password
-from services.auth.jwt import create_access_token, create_refresh_token, decode_token
+from services.auth.jwt import JWTError, create_access_token, create_refresh_token, decode_token
 
 router = APIRouter()
 

@@ -2,9 +2,13 @@
 
 from datetime import datetime, timedelta, timezone
 
-from jose import jwt, JWTError
+from cryptography.hazmat.primitives.serialization import load_pem_private_key
+import jwt
+from jwt.exceptions import InvalidTokenError as JWTError
 
 from config import settings
+
+__all__ = ["JWTError", "create_access_token", "create_refresh_token", "decode_token"]
 
 
 def create_access_token(user_id: str) -> str:
@@ -27,4 +31,10 @@ def create_refresh_token(user_id: str) -> str:
 
 def decode_token(token: str) -> dict:
     """Decode and verify a JWT token. Raises JWTError on invalid/expired."""
-    return jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
+    key = settings.jwt_secret_key
+    # Existing RSA deployments use the same PEM private key for signing and
+    # verification. PyJWT needs its public component when verifying RSA tokens.
+    if settings.jwt_algorithm in {"RS256", "RS384", "RS512", "PS256", "PS384", "PS512"}:
+        if key.lstrip().startswith(("-----BEGIN PRIVATE KEY-----", "-----BEGIN RSA PRIVATE KEY-----")):
+            key = load_pem_private_key(key.encode(), password=None).public_key()
+    return jwt.decode(token, key, algorithms=[settings.jwt_algorithm])
