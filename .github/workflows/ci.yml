@@ -127,7 +127,7 @@ jobs:
         run: npm run lint
 
       - name: Security audit
-        run: npm audit --audit-level=high || true
+        run: npm audit --audit-level=high
         working-directory: apps/web
 
       - name: Run Web unit tests

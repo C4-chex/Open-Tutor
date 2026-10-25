@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { ContentNode } from "@/lib/api";
 import {
   buildFocusTerms,
   collectContentNodes,
@@ -7,26 +8,42 @@ import {
   findPathToNode,
 } from "./content-tree";
 
-const tree = [
+const tree: ContentNode[] = [
   {
     id: "chapter-1",
     title: "Chapter 1",
+    type: "topic",
+    level: 0,
+    order_index: 0,
+    source_type: "file",
     content: "",
     children: [
       {
         id: "node-a",
         title: "Binary Search",
+        type: "section",
+        level: 1,
+        order_index: 0,
+        source_type: "file",
         content: "How binary search works",
         children: [],
       },
       {
         id: "node-b",
         title: "Two Pointers",
+        type: "section",
+        level: 1,
+        order_index: 1,
+        source_type: "file",
         content: "",
         children: [
           {
             id: "node-c",
             title: "Sliding Window",
+            type: "section",
+            level: 2,
+            order_index: 0,
+            source_type: "file",
             content: "Window technique notes",
             children: [],
           },
