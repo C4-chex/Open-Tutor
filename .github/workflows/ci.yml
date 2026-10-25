@@ -192,8 +192,9 @@ jobs:
           pip install -r apps/api/requirements-full.txt
           pip install pytest pytest-timeout
 
-      - name: Prepare upload fixture
-        run: cp tests/e2e/fixtures/sample-course.md /tmp/opentutor_upload_test.md
+      - name: Validate upload fixture
+        # Preserve the filename: names containing "test" classify as exams.
+        run: test -s tests/e2e/fixtures/sample-course.md
 
       - name: Start mock LLM API
         run: |
@@ -227,7 +228,7 @@ jobs:
         run: |
           API_BASE=http://127.0.0.1:8004 \
           STRICT_LLM=1 \
-          UPLOAD_FILE=/tmp/opentutor_upload_test.md \
+          UPLOAD_FILE=tests/e2e/fixtures/sample-course.md \
           bash scripts/smoke_test.sh
 
       - name: Dump API log on failure
