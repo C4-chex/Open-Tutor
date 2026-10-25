@@ -193,12 +193,7 @@ jobs:
           pip install pytest pytest-timeout
 
       - name: Prepare upload fixture
-        run: |
-          cat > /tmp/opentutor_upload_test.md <<'EOF'
-          # Unit 1
-          ## Topic A
-          Notes for CI smoke test.
-          EOF
+        run: cp tests/e2e/fixtures/sample-course.md /tmp/opentutor_upload_test.md
 
       - name: Start mock LLM API
         run: |

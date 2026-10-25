@@ -24,7 +24,7 @@ export function CourseSpacesSection({
 }) {
   return (
     <DashSection title={t("home.yourSpaces")} icon={BookOpen}>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div data-testid="course-spaces" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {courses.map((course, idx) => {
           const color = CARD_COLORS[idx % CARD_COLORS.length];
           const initials = getInitials(course.name);
