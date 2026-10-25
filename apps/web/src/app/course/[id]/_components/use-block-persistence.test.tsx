@@ -31,6 +31,59 @@ describe("useBlockPersistence", () => {
     vi.useRealTimers();
   });
 
+  it("saves an added summary locally and to the server, then restores it on return", async () => {
+    useWorkspaceStore.setState({ spaceLayout: makeLayout([]) });
+    const { unmount } = renderHook(() =>
+      useBlockPersistence("course-summary", { metadata: {} }),
+    );
+
+    act(() => {
+      useWorkspaceStore.getState().addBlock("summary", { focus: "recent" });
+    });
+    const expectedLayout = useWorkspaceStore.getState().spaceLayout;
+    expect(expectedLayout.blocks).toHaveLength(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+
+    expect(mockUpdateCourseLayout).toHaveBeenLastCalledWith("course-summary", expectedLayout);
+    expect(JSON.parse(localStorage.getItem("opentutor_blocks_course-summary")!)).toEqual(expectedLayout);
+
+    unmount();
+    useWorkspaceStore.setState({ spaceLayout: makeLayout([]) });
+    renderHook(() => useBlockPersistence("course-summary", { metadata: {} }));
+
+    expect(useWorkspaceStore.getState().spaceLayout).toEqual(expectedLayout);
+  });
+
+  it.each(["local", "server"])("restores an existing summary from %s storage", (source) => {
+    const savedLayout = makeLayout([
+      {
+        id: "summary-existing",
+        type: "summary",
+        position: 0,
+        size: "large",
+        config: { focus: "recent" },
+        visible: false,
+        source: "agent",
+        agentMeta: { reason: "Review recent learning", dismissible: true },
+      },
+    ]);
+    if (source === "local") {
+      localStorage.setItem("opentutor_blocks_course-summary", JSON.stringify(savedLayout));
+    }
+    useWorkspaceStore.setState({ spaceLayout: makeLayout([]) });
+
+    renderHook(() =>
+      useBlockPersistence("course-summary", {
+        metadata: source === "server" ? { spaceLayout: savedLayout } : {},
+      }),
+    );
+
+    expect(useWorkspaceStore.getState().spaceLayout).toEqual(savedLayout);
+  });
+
   it("persists empty layouts after all blocks are removed", async () => {
     useWorkspaceStore.setState({
       spaceLayout: makeLayout([

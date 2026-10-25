@@ -9,20 +9,6 @@ import type {
   SpaceLayout,
 } from "./types";
 
-const BLOCK_TYPES: readonly BlockType[] = [
-  "notes",
-  "quiz",
-  "flashcards",
-  "progress",
-  "knowledge_graph",
-  "review",
-  "chapter_list",
-  "plan",
-  "wrong_answers",
-  "forecast",
-  "agent_insight",
-] as const;
-
 const BLOCK_SIZES: readonly BlockSize[] = ["small", "medium", "large", "full"] as const;
 const BLOCK_SOURCES: readonly BlockSource[] = ["template", "user", "agent"] as const;
 const LEARNING_MODES: readonly LearningMode[] = [
@@ -54,7 +40,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function isBlockType(value: unknown): value is BlockType {
-  return typeof value === "string" && BLOCK_TYPES.includes(value as BlockType);
+  // The exhaustive defaults map also defines which block types can be persisted.
+  return typeof value === "string" && Object.prototype.hasOwnProperty.call(BLOCK_DEFAULT_SIZES, value);
 }
 
 function isBlockSize(value: unknown): value is BlockSize {

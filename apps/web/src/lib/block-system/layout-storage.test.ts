@@ -16,6 +16,23 @@ describe("layout-storage", () => {
     expect(parseSpaceLayout({ blocks: "broken" })).toBeNull();
   });
 
+  it("restores summary blocks with their default size", () => {
+    const layout = parseSpaceLayout({
+      blocks: [{ id: "summary-1", type: "summary", size: "invalid" }],
+    });
+
+    expect(layout?.blocks).toEqual([
+      expect.objectContaining({ id: "summary-1", type: "summary", size: "small" }),
+    ]);
+  });
+
+  it.each(["constructor", "toString", "__proto__"])(
+    "rejects inherited object property %s as a block type",
+    (type) => {
+      expect(parseSpaceLayout({ blocks: [{ type }] })?.blocks).toEqual([]);
+    },
+  );
+
   it("filters invalid blocks and repairs duplicate ids", () => {
     const layout = parseSpaceLayout({
       templateId: "quick_reviewer",
