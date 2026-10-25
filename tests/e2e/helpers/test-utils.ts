@@ -6,7 +6,7 @@ export const SAMPLE_COURSE_MD = path.join(process.cwd(), "tests/e2e/fixtures/sam
 export const SAMPLE_COURSE_2_MD = path.join(process.cwd(), "tests/e2e/fixtures/sample-course-2.md");
 const useExistingServer = process.env.PLAYWRIGHT_USE_EXISTING_SERVER === "1";
 const backendPort = Number(process.env.PLAYWRIGHT_BACKEND_PORT || (useExistingServer ? "8000" : "8005"));
-const apiBaseUrl = process.env.PLAYWRIGHT_API_URL || `http://127.0.0.1:${backendPort}/api`;
+export const apiBaseUrl = process.env.PLAYWRIGHT_API_URL || `http://127.0.0.1:${backendPort}/api`;
 const LOCAL_REAL_PROVIDERS = ["ollama", "lmstudio", "textgenwebui"] as const;
 type LocalRealProvider = (typeof LOCAL_REAL_PROVIDERS)[number];
 

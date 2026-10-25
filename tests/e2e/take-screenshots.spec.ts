@@ -4,6 +4,7 @@
  */
 import { test } from "@playwright/test";
 import path from "path";
+import { apiBaseUrl } from "./helpers/test-utils";
 
 const OUT = path.resolve(__dirname, "../../docs/assets");
 
@@ -14,8 +15,7 @@ test.use({
 
 test("capture course workspace screenshot", async ({ page }) => {
   // Get courses from API
-  const apiBase = "http://127.0.0.1:8000/api";
-  const res = await page.request.get(`${apiBase}/courses/`);
+  const res = await page.request.get(`${apiBaseUrl}/courses/`);
   const courses = await res.json();
 
   if (courses.length === 0) {

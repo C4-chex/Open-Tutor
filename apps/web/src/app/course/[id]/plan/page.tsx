@@ -66,7 +66,7 @@ export default function PlanPage() {
   const defaultTab =
     requestedTab === "plan" || requestedTab === "calendar" || requestedTab === "tasks" || requestedTab === "timeline"
       ? requestedTab
-      : undefined;
+      : "plan";
 
   const aiActionsEnabled =
     health?.llm_status !== "mock_fallback" &&
