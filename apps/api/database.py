@@ -7,6 +7,7 @@ import logging
 import time
 
 from sqlalchemy import event
+from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.pool import StaticPool
@@ -19,7 +20,12 @@ _is_sqlite = settings.database_url.startswith("sqlite")
 
 _engine_kwargs: dict = {"echo": False}
 if _is_sqlite:
-    _engine_kwargs["poolclass"] = StaticPool
+    _sqlite_url = make_url(settings.database_url)
+    # Only in-memory databases need a shared connection. File databases use
+    # SQLAlchemy's async queue pool so overlapping requests have isolated
+    # transactions: one request's rollback must not erase another's writes.
+    if _sqlite_url.database in (None, "", ":memory:") or _sqlite_url.query.get("mode") == "memory":
+        _engine_kwargs["poolclass"] = StaticPool
     _engine_kwargs["connect_args"] = {"check_same_thread": False}
 else:
     _engine_kwargs["pool_size"] = 10
