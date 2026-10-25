@@ -15,6 +15,8 @@ import csv
 import logging
 from pathlib import Path
 
+from services.ingestion.document_loader_extractors import CRAWLER_UNAVAILABLE_ERRORS
+
 logger = logging.getLogger(__name__)
 
 # Office formats handled by loader_dict (GPT-Researcher pattern)
@@ -49,11 +51,11 @@ async def _extract_local_with_crawl4ai(file_path: str) -> tuple[str, str]:
                     if result.metadata and isinstance(result.metadata, dict):
                         title = result.metadata.get("title", "") or ""
                     return title or Path(file_path).stem, raw
-    except ImportError:
-        logger.debug("crawl4ai not installed, falling back to legacy extractors")
+    except CRAWLER_UNAVAILABLE_ERRORS:
+        logger.debug("Crawl4AI browser unavailable, falling back to legacy extractors", exc_info=True)
     except (IOError, OSError) as e:
         logger.debug(f"Crawl4AI local file I/O error for {file_path}: {e}")
-    except (ValueError, RuntimeError) as e:
+    except (ValueError, RuntimeError):
         logger.exception(f"Unexpected error in Crawl4AI local extraction for {file_path}")
 
     # Fallback based on file extension
@@ -153,7 +155,7 @@ def _extract_html_fallback(file_path: str) -> tuple[str, str]:
     # Raw text fallback
     try:
         return Path(file_path).stem, Path(file_path).read_text(errors="ignore")
-    except (IOError, OSError) as e:
+    except (IOError, OSError):
         logger.exception("Failed to read file %s", file_path)
         return Path(file_path).stem, ""
 
@@ -437,7 +439,7 @@ def _extract_plain_text(file_path: str) -> tuple[str, str]:
     try:
         content = Path(file_path).read_text(errors="ignore")
         return Path(file_path).stem, content
-    except OSError as e:
+    except OSError:
         logger.exception("Failed to read plain text file %s", file_path)
         return Path(file_path).stem, ""
 
