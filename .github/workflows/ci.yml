@@ -245,7 +245,8 @@ jobs:
 
   e2e-ui:
     name: Browser E2E (All Specs)
-    runs-on: ubuntu-latest
+    # Keep browser jobs on a Playwright-supported image as ubuntu-latest advances.
+    runs-on: ubuntu-24.04
     needs: api-smoke
 
     env:
@@ -306,7 +307,8 @@ jobs:
 
   llm-integration:
     name: Real LLM Integration
-    runs-on: ubuntu-latest
+    # Keep browser jobs on a Playwright-supported image as ubuntu-latest advances.
+    runs-on: ubuntu-24.04
     needs: e2e-ui
     if: ${{ vars.ENABLE_LLM_TESTS == 'true' }}
 
