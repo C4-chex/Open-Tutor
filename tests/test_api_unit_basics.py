@@ -1,7 +1,6 @@
 import asyncio
 import re
 import uuid
-from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
@@ -11,7 +10,7 @@ from fastapi import HTTPException
 import sqlalchemy as sa
 from sqlalchemy.exc import ProgrammingError
 
-from libs.exceptions import KnowledgeGraphUnavailableError, NotFoundError, ValidationError
+from libs.exceptions import KnowledgeGraphUnavailableError, ValidationError
 from routers.chat import _resolve_chat_session
 from routers.chat_helpers import build_session_title as _build_session_title
 from routers.goals import get_next_action, queue_next_action
@@ -25,6 +24,14 @@ from services.llm.local_config import get_llm_runtime_config, update_llm_runtime
 from services.llm import router as llm_router
 from services.health import _local_beta_readiness
 from services.migrations import bootstrap_alembic_version_table, summarize_migration_state
+
+
+@pytest.fixture(autouse=True)
+def restore_runtime_settings(monkeypatch):
+    """Runtime-config writes must not leak fake keys into later test modules."""
+    settings = llm_router.settings
+    for name in type(settings).model_fields:
+        monkeypatch.setattr(settings, name, getattr(settings, name))
 
 
 def _frontend_api_client_dir() -> Path:
