@@ -122,7 +122,11 @@ def main():
             if bundle.testzip() is not None:raise RuntimeError('Browser source archive verification failed')
         result['browser_upload']={'path':str(target),'batches':len(groups),'files_per_batch':90,'bytes':target.stat().st_size}
     (folder/'source-audit.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
-    print(json.dumps(result,ensure_ascii=False))
+    # Keep log output to counts; detailed, value-free findings stay in the report.
+    status = 'passed' if result['ok'] else 'failed'
+    history_matches = len(result.get('history', {}).get('current_private_credential_matches', []))
+    print(f'Source audit {status}; files={len(files)}; findings={len(result["findings"])}; '
+          f'history_matches={history_matches}; report=source-release/source-audit.json')
     if not result['ok']:raise SystemExit(1)
 
 if __name__=='__main__':main()

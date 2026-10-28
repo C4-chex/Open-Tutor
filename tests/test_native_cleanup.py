@@ -10,7 +10,7 @@ module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
 
 class CleanupTests(unittest.TestCase):
     def setUp(self):
-        self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup);self.root=Path(self.temp.name)
+        self.temp=tempfile.TemporaryDirectory();self.addCleanup(self.temp.cleanup);self.root=Path(self.temp.name).resolve()
         self.protected=["apps/api/main.py","apps/web/package.json","apps/web/.next/BUILD_ID","apps/web/.next/server/page.js",
             "apps/web/node_modules/next/index.js","native-data/data/opentutor.db","native-data/settings.env","native-data/logs/api.log",
             "local-backups/safe.sqlite3",".runtime/node/node.exe","scripts/windows/Launcher.cs"]

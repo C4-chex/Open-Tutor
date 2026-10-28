@@ -13,7 +13,7 @@ class FirstRunTests(unittest.TestCase):
   root=Path(parent)/name;(root/"apps/api").mkdir(parents=True);(root/"apps/api/main.py").touch();return root
  def test_generates_empty_provider_keys_and_paths_for_this_installation(self):
   with tempfile.TemporaryDirectory() as folder:
-   root=self.make_root(folder,"教学 空格 ' example")
+   root=self.make_root(folder,"教学 空格 ' example").resolve()
    self.assertTrue(native_init.initialize(root));values=dotenv_values(root/"native-data/settings.env")
    for name in ("OPENAI_API_KEY","ANTHROPIC_API_KEY","DEEPSEEK_API_KEY","CUSTOM_LLM_API_KEY"):
     self.assertEqual(values[name],"")

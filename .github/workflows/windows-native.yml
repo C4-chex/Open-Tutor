@@ -49,7 +49,7 @@ jobs:
           CODE_SANDBOX_BACKEND: disabled
         run: |
           apps/api/.venv-win/Scripts/python.exe -m pip install pytest
-          apps/api/.venv-win/Scripts/python.exe -m pytest tests/test_native_init.py tests/test_native_mode.py tests/test_native_api_import.py tests/test_windows_native_flow.py -q -o addopts=
+          apps/api/.venv-win/Scripts/python.exe -m pytest tests/test_native_init.py tests/test_native_cleanup.py tests/test_source_bundle_privacy.py tests/test_native_mode.py tests/test_native_api_import.py tests/test_windows_native_flow.py -q -o addopts=
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/test-native-log-archive.ps1
       - name: Stop owned services
