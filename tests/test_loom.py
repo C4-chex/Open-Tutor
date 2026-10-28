@@ -3,6 +3,7 @@ import uuid
 from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
+
 from services.loom_extraction import _BLOOM_LEVELS, extract_course_concepts
 from services.loom_graph import (
     build_course_graph,
@@ -12,6 +13,9 @@ from services.loom_graph import (
     link_cross_course_concepts,
 )
 from services.loom_mastery import _bkt_update, update_concept_mastery
+
+
+pytestmark = pytest.mark.usefixtures("block_unmocked_cloud_requests")
 
 def _node(name, cid, nid=None, meta=None):
     n = MagicMock(); n.id = nid or uuid.uuid4(); n.course_id = cid; n.name = name

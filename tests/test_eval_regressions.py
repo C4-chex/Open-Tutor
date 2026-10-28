@@ -1,7 +1,11 @@
 import pytest
 
+
 from services.evaluation.benchmark_runner import run_regression_benchmark
 from services.evaluation.eval_retrieval import _CourseNodeSnapshot, _build_relevant_ids_from_keywords
+
+
+pytestmark = pytest.mark.usefixtures("block_unmocked_cloud_requests")
 
 
 @pytest.mark.asyncio
